@@ -6,44 +6,48 @@ const createTokenUser = require("../utils/createTokenUser");
 const { getAllItems, updateItem, deleteItem } = require("./generic.controller");
 
 const getAllUsers = async (req, res) => {
-  try {
-    const { page = 1, limit = 10, searchTerm = "" } = req.query;
-    const searchQuery = {};
-
-    if (searchTerm) {
-      const keywords = searchTerm
-        .split("%")
-        .map((keyword) => new RegExp(keyword, "i"));
-      searchQuery.name = { $all: keywords };
-    }
-
-    const totalUsers = await User.countDocuments({
-      role: { $in: ["user", "owner"] },
-      ...searchQuery,
-    });
-
-    const users = await User.find({
-      role: { $in: ["user", "owner"] },
-      ...searchQuery,
-    })
-      .select("-password")
-      .skip((page - 1) * limit)
-      .limit(limit);
-
-    const totalPages = Math.ceil(totalUsers / limit);
-
-    res.status(StatusCodes.OK).json({
-      currentPage: parseInt(page),
-      totalPages,
-      totalUsers,
-      users,
-    });
-  } catch (error) {
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ error: error.message });
-  }
+  await getAllItems(req, res, User);
 };
+
+// const getAllUsers = async (req, res) => {
+//   try {
+//     const { page = 1, limit = 10, searchTerm = "" } = req.query;
+//     const searchQuery = {};
+
+//     if (searchTerm) {
+//       const keywords = searchTerm
+//         .split("%")
+//         .map((keyword) => new RegExp(keyword, "i"));
+//       searchQuery.name = { $all: keywords };
+//     }
+
+//     const totalUsers = await User.countDocuments({
+//       role: { $in: ["user", "owner"] },
+//       ...searchQuery,
+//     });
+
+//     const users = await User.find({
+//       role: { $in: ["user", "owner"] },
+//       ...searchQuery,
+//     })
+//       .select("-password")
+//       .skip((page - 1) * limit)
+//       .limit(limit);
+
+//     const totalPages = Math.ceil(totalUsers / limit);
+
+//     res.status(StatusCodes.OK).json({
+//       currentPage: parseInt(page),
+//       totalPages,
+//       totalUsers,
+//       users,
+//     });
+//   } catch (error) {
+//     res
+//       .status(StatusCodes.INTERNAL_SERVER_ERROR)
+//       .json({ error: error.message });
+//   }
+// };
 
 const getSingleUser = async (req, res) => {
   const { params } = req;

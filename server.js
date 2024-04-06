@@ -25,7 +25,7 @@ const connectDB = require('./app/config/connectDB')
 // routers
 const authRouter = require('./app/routes/auth.routes')
 const userRouter = require('./app/routes/user.routes')
-// const productRouter = require('./routes/productRoutes')
+const hotelRouter = require('./app/routes/hotel.routes')
 // const reviewRouter = require('./routes/reviewRoutes')
 // const bidRouter = require('./routes/bidRoutes')
 // // const profileRouter = require('./routes/profileRoutes')
@@ -74,7 +74,7 @@ app.get("/", (req, res) => {
 // routes
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/users', userRouter)
-// app.use('/api/v1/products', productRouter)
+app.use('/api/v1/hotels', hotelRouter)
 // app.use('/api/v1/reviews', reviewRouter)
 // app.use('/api/v1/bids', bidRouter)
 // app.use('/api/v1/events', eventRouter)

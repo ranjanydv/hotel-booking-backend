@@ -1,5 +1,21 @@
 const { StatusCodes } = require("http-status-codes");
 
+const createNewItem = async (req, res, Model) => {
+  try {
+    const newItem = new Model(req.body);
+    await newItem.save();
+
+    res.status(StatusCodes.CREATED).json({
+      message: "Item created successfully",
+      item: newItem,
+    });
+  } catch (error) {
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ status: 500, message: error.message });
+  }
+};
+
 const getAllItems = async (req, res, Model) => {
   try {
     const { page = 1, limit = 10, searchTerm = "" } = req.query;
@@ -28,7 +44,67 @@ const getAllItems = async (req, res, Model) => {
   } catch (error) {
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ error: error.message });
+      .json({
+        status: 500,
+        error: error.message,
+        message: "Internal Server Error",
+      });
+  }
+};
+
+const getSingleItem = async (req, res, Model, identifier) => {
+  try {
+    const item = await Model.findById(identifier);
+
+    if (!item) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ status: 404, message: `Item with ID ${identifier} not found` });
+    }
+    res.status(StatusCodes.OK).json(item);
+  } catch (error) {
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ status: 500, message: error.message });
+  }
+};
+
+const getItemWithAssociations = async (
+  req,
+  res,
+  Model,
+  ...associatedModels
+) => {
+  try {
+    const itemId = req.params.id;
+    const item = await Model.findById(itemId);
+
+    if (!item) {
+      return res.status(404).json({
+        status: 404,
+        message: `No item with id ${itemId} found`,
+      });
+    }
+
+    const associatedData = await Promise.all(
+      associatedModels.map(async (AssociatedModel) => {
+        const associatedItems = await AssociatedModel.find({
+          [Model.modelName.toLowerCase()]: itemId,
+        });
+        return { [AssociatedModel.modelName]: associatedItems };
+      })
+    );
+
+    const responseData = {
+      ...item.toObject(),
+      ...Object.assign({}, ...associatedData),
+    };
+
+    res.status(StatusCodes.OK).json(responseData);
+  } catch (error) {
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ status: 500, message: error.message });
   }
 };
 
@@ -82,4 +158,11 @@ const deleteItem = async (req, res, Model, identifier) => {
   }
 };
 
-module.exports = { getAllItems, updateItem, deleteItem };
+module.exports = {
+  createNewItem,
+  getAllItems,
+  getSingleItem,
+  getItemWithAssociations,
+  updateItem,
+  deleteItem,
+};
