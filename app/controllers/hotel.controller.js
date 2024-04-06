@@ -1,10 +1,15 @@
 const Hotel = require("../models/hotels.model");
+const Room = require("../models/rooms.model");
+const User = require("../models/user.model");
+
+
 const {
   getAllItems,
   getSingleItem,
   createNewItem,
   updateItem,
   deleteItem,
+  getItemWithAssociations,
 } = require("./generic.controller");
 
 const getAllHotels = async (req, res) => {
@@ -13,7 +18,7 @@ const getAllHotels = async (req, res) => {
 
 const getSingleHotel = async (req, res) => {
   const { params } = req;
-  await getSingleItem(req, res, Hotel, params.id);
+  await getItemWithAssociations(req, res, Hotel, params.id,Room);
 };
 
 const createHotel = async (req, res) => {

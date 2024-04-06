@@ -42,13 +42,11 @@ const getAllItems = async (req, res, Model) => {
       items,
     });
   } catch (error) {
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({
-        status: 500,
-        error: error.message,
-        message: "Internal Server Error",
-      });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 500,
+      error: error.message,
+      message: "Internal Server Error",
+    });
   }
 };
 
@@ -73,10 +71,11 @@ const getItemWithAssociations = async (
   req,
   res,
   Model,
+  identifier,
   ...associatedModels
 ) => {
   try {
-    const itemId = req.params.id;
+    const itemId = identifier;
     const item = await Model.findById(itemId);
 
     if (!item) {
@@ -91,20 +90,27 @@ const getItemWithAssociations = async (
         const associatedItems = await AssociatedModel.find({
           [Model.modelName.toLowerCase()]: itemId,
         });
-        return { [AssociatedModel.modelName]: associatedItems };
+
+        return associatedItems.length > 0
+          ? { [AssociatedModel.modelName]: associatedItems }
+          : null;
       })
     );
 
     const responseData = {
       ...item.toObject(),
-      ...Object.assign({}, ...associatedData),
+      ...Object.assign({}, ...associatedData.filter(Boolean)),
     };
 
     res.status(StatusCodes.OK).json(responseData);
   } catch (error) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ status: 500, message: error.message });
+      .json({
+        status: 500,
+        error: error.message,
+        message: "Something went wrong",
+      });
   }
 };
 

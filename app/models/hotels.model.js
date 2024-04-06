@@ -101,8 +101,9 @@ const hotelSchema = new mongoose.Schema(
     description: { type: String, required: true },
     location: { type: String, required: true },
     photos: [{ type: String }],
-    rooms: [{ type: mongoose.Schema.Types.ObjectId, ref: "Room" }],
-    reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }],
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    // rooms: [{ type: mongoose.Schema.Types.ObjectId, ref: "Room" }],
+    // reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }],
   },
   { timestamps: true }
 );
