@@ -3,17 +3,29 @@ const { StatusCodes } = require("http-status-codes");
 const jwt = require("jsonwebtoken");
 
 const createTokenUser = require("../utils/createTokenUser");
-const { updateItem, deleteItem } = require("./generic.controller");
+const { getAllItems, updateItem, deleteItem } = require("./generic.controller");
 
 const getAllUsers = async (req, res) => {
-  const { page, limit } = req.query;
-
   try {
+    const { page = 1, limit = 10, searchTerm = "" } = req.query;
+    const searchQuery = {};
+
+    if (searchTerm) {
+      const keywords = searchTerm
+        .split("%")
+        .map((keyword) => new RegExp(keyword, "i"));
+      searchQuery.name = { $all: keywords };
+    }
+
     const totalUsers = await User.countDocuments({
       role: { $in: ["user", "owner"] },
+      ...searchQuery,
     });
 
-    const users = await User.find({ role: { $in: ["user", "owner"] } })
+    const users = await User.find({
+      role: { $in: ["user", "owner"] },
+      ...searchQuery,
+    })
       .select("-password")
       .skip((page - 1) * limit)
       .limit(limit);
@@ -21,10 +33,10 @@ const getAllUsers = async (req, res) => {
     const totalPages = Math.ceil(totalUsers / limit);
 
     res.status(StatusCodes.OK).json({
-      users,
       currentPage: parseInt(page),
       totalPages,
       totalUsers,
+      users,
     });
   } catch (error) {
     res
@@ -131,5 +143,5 @@ module.exports = {
   updateUser,
   updateUserPassword,
   upgradeToMerchant,
-  deleteUser
+  deleteUser,
 };

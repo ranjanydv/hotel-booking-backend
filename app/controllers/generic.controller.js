@@ -1,23 +1,29 @@
 const { StatusCodes } = require("http-status-codes");
 
 const getAllItems = async (req, res, Model) => {
-  console.log(req.query);
-  const { page, limit } = req.query;
-
   try {
-    const totalItems = await Model.countDocuments();
+    const { page = 1, limit = 10, searchTerm = "" } = req.query;
+    const searchQuery = {};
 
-    const items = await Model.find()
+    if (searchTerm) {
+      const keywords = searchTerm
+        .split("%")
+        .map((keyword) => new RegExp(keyword, "i"));
+      searchQuery.name = { $all: keywords };
+    }
+
+    const totalItems = await Model.countDocuments(searchQuery);
+    const items = await Model.find(searchQuery)
       .skip((page - 1) * limit)
       .limit(limit);
 
     const totalPages = Math.ceil(totalItems / limit);
 
     res.status(StatusCodes.OK).json({
-      items,
       currentPage: parseInt(page),
       totalPages,
       totalItems,
+      items,
     });
   } catch (error) {
     res
