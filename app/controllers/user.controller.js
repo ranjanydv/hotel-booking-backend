@@ -3,22 +3,38 @@ const { StatusCodes } = require("http-status-codes");
 const jwt = require("jsonwebtoken");
 
 const createTokenUser = require("../utils/createTokenUser");
+const { updateItem, deleteItem } = require("./generic.controller");
 
 const getAllUsers = async (req, res) => {
-  console.log(req.authData);
-  // const users = await User.find({ role: 'user' }).select('-password')
-  const users = await User.find({ role: { $in: ["user", "owner"] } }).select(
-    "-password"
-  );
-  res.status(StatusCodes.OK).json({ users });
+  const { page, limit } = req.query;
+
+  try {
+    const totalUsers = await User.countDocuments({
+      role: { $in: ["user", "owner"] },
+    });
+
+    const users = await User.find({ role: { $in: ["user", "owner"] } })
+      .select("-password")
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.status(StatusCodes.OK).json({
+      users,
+      currentPage: parseInt(page),
+      totalPages,
+      totalUsers,
+    });
+  } catch (error) {
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: error.message });
+  }
 };
 
 const getSingleUser = async (req, res) => {
   const { params } = req;
-  console.log(
-    "🚀 ~ file: user.controller.js:15 ~ getSingleUser ~ params:",
-    params
-  );
   const user = await User.findOne({ _id: params.id }).select("-password");
   if (!user) {
     res.status(404).send({
@@ -34,32 +50,8 @@ const showCurrentUser = async (req, res) => {
   res.status(StatusCodes.OK).json({ user });
 };
 
-// update user details using user.save() method
 const updateUser = async (req, res) => {
-  try {
-    const { name, phone, streetAddress, city } = req.body;
-    const user = await User.findOne({ _id: req.authData.id });
-    user.name = name;
-    user.phone = phone || "";
-    user.streetAddress = streetAddress || "";
-    user.city = city || "";
-    await user.save();
-    const tokenUser = createTokenUser(user);
-    res.status(StatusCodes.OK).send({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      streetAddress: user.streetAddress,
-      city: user.city,
-      accessToken: tokenUser,
-    });
-  } catch (error) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ status: 500, message: error.message });
-  }
+  await updateItem(req, res, User, req.authData.id);
 };
 
 const updateUserPassword = async (req, res) => {
@@ -100,24 +92,22 @@ const updateUserPassword = async (req, res) => {
 const upgradeToMerchant = async (req, res) => {
   console.log("Upgrade to merchant");
   try {
-    const user = await User.findOne({ _id: req.authData.id });
-    if (!user) {
+    const userExists = await User.findOne({ _id: req.authData.id });
+    if (!userExists) {
       return res
         .status(StatusCodes.NOT_FOUND)
         .send({ status: 404, message: "User not found" });
     }
-    user.role = "owner";
-    // saving with save method
-    await user.save();
-    const tokenUser = createTokenUser(user);
+    const role = "owner";
+    const updatedUser = await User.findOneAndUpdate(
+      { id: req.authData.id },
+      { role },
+      { new: true }
+    ).select("-password");
+    const tokenUser = createTokenUser(updatedUser);
+
     res.status(StatusCodes.OK).send({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      streetAddress: user.streetAddress,
-      city: user.city,
+      updatedUser,
       accessToken: tokenUser,
     });
   } catch (error) {
@@ -128,6 +118,12 @@ const upgradeToMerchant = async (req, res) => {
   }
 };
 
+const deleteUser = async (req, res) => {
+  const { params } = req;
+  console.log(params);
+  await deleteItem(req, res, User, params.id);
+};
+
 module.exports = {
   getAllUsers,
   getSingleUser,
@@ -135,4 +131,5 @@ module.exports = {
   updateUser,
   updateUserPassword,
   upgradeToMerchant,
+  deleteUser
 };

@@ -1,7 +1,34 @@
-const User = require("../models/user.model");
 const { StatusCodes } = require("http-status-codes");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { createTokenUser } = require("../utils/createTokenUser");
+
+const User = require("../models/user.model");
+
+const registerAdmin = async (req, res) => {
+  const { email, name, password } = req.body;
+  const emailAlreadyExists = await User.findOne({ email });
+  if (emailAlreadyExists)
+    return res.status(StatusCodes.CONFLICT).send({
+      status: 409,
+      accessToken: null,
+      message: "Email already exists",
+    });
+
+  const role = "admin";
+  const salt = await bcrypt.genSalt(12);
+  const hashedPassword = await bcrypt.hash(password, salt);
+  const data = {
+    name,
+    email: email.toLowerCase(),
+    password: hashedPassword,
+    role,
+    phone: "",
+    streetAddress: "",
+    city: "",
+  };
+  const user = await User.create(data);
+  res.status(StatusCodes.CREATED).json({ user: user });
+};
 
 const register = async (req, res) => {
   const { email, name, password } = req.body;
@@ -16,10 +43,38 @@ const register = async (req, res) => {
   // * make the first user Admin by default
   const isFirstUser = (await User.countDocuments({})) === 0;
   const role = isFirstUser ? "admin" : "user";
+  const salt = await bcrypt.genSalt(12);
+  const hashedPassword = await bcrypt.hash(password, salt);
   const data = {
     name,
-    email,
-    password,
+    email: email.toLowerCase(),
+    password: hashedPassword,
+    role,
+    phone: "",
+    streetAddress: "",
+    city: "",
+  };
+  const user = await User.create(data);
+  res.status(StatusCodes.CREATED).json({ user: user });
+};
+
+const registerMerchant = async (req, res) => {
+  const { email, name, password } = req.body;
+  const emailAlreadyExists = await User.findOne({ email });
+  if (emailAlreadyExists)
+    return res.status(StatusCodes.CONFLICT).send({
+      status: 409,
+      accessToken: null,
+      message: "Email already exists",
+    });
+
+  const role = "owner";
+  const salt = await bcrypt.genSalt(12);
+  const hashedPassword = await bcrypt.hash(password, salt);
+  const data = {
+    name,
+    email: email.toLowerCase(),
+    password: hashedPassword,
     role,
     phone: "",
     streetAddress: "",
@@ -84,27 +139,9 @@ const login = async (req, res) => {
   }
 };
 
-const registerMerchant = async (req, res) => {
-  const { email, name, password } = req.body;
-  const emailAlreadyExists = await User.findOne({ email });
-  if (emailAlreadyExists) {
-    throw new CustomError.BadRequestError("Email Already Exists.");
-  }
-  const role = "owner";
-  const user = await User.create({ email, name, password, role });
-  const tokenUser = createTokenUser(user);
-  attachCookiesToResponse({ res, user: tokenUser });
-  res.status(StatusCodes.CREATED).json({ user: tokenUser });
-};
-
-// const validateTokenForMobile = async (req, res) => {
-// 	res.status(StatusCodes.OK).json({ msg: 'Token Verified' })
-// }
-
 module.exports = {
   register,
   login,
-  // logout,
-  // validateTokenForMobile,
+  registerAdmin,
   registerMerchant,
 };

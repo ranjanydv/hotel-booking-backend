@@ -70,7 +70,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: [6, "Password cannot be less than 6 characters"],
     },
-    profilePicture: { type: String },
+    profilePicture: { type: String, default: "/uploads/Airbnb.png" },
     role: {
       type: String,
       enum: ["admin", "user", "owner"],
@@ -79,20 +79,19 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
     },
-    registrationDate: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
 // * Encrypt password using bcrypt
-UserSchema.pre("save", async function () {
+userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   const salt = await bcrypt.genSalt(12);
   this.password = bcrypt.hash(this.password, salt);
 });
 
 // * compare user password with hashed password
-UserSchema.methods.comparePassword = async function (candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

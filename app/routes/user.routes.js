@@ -23,5 +23,6 @@ router.patch(
 router.patch('/joinMerchant', authenticateUser, controller.upgradeToMerchant);
 
 router.get("/:id", authenticateUser, controller.getSingleUser);
+router.delete("/delete/:id", authenticateUser, controller.deleteUser);
 
 module.exports = router;
