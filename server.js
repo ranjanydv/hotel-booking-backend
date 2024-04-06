@@ -51,6 +51,7 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.disable("x-powered-by");
 app.enable("trust proxy");
+app.use(express.static(path.join(__dirname, "uploads")));
 
 app.options("*", cors());
 
