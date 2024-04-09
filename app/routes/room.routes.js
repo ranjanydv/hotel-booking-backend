@@ -13,5 +13,6 @@ router.post(
   controller.createRoom
 );
 router.get("/", controller.getAllRooms);
+router.get("/:hotelId", controller.getRoomsByHotel);
 
 module.exports = router;

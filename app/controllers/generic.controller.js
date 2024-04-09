@@ -16,11 +16,47 @@ const createNewItem = async (req, res, Model) => {
   }
 };
 
-const getAllItems = async (req, res, Model) => {
+// const getAllItems = async (req, res, Model) => {
+//   try {
+//     const { page = 1, limit = 10, searchTerm = "" } = req.query;
+//     const searchQuery = {};
+
+//     if (searchTerm) {
+//       const keywords = searchTerm
+//         .split("%")
+//         .map((keyword) => new RegExp(keyword, "i"));
+//       searchQuery.name = { $all: keywords };
+//     }
+
+//     const totalItems = await Model.countDocuments(searchQuery);
+//     const items = await Model.find(searchQuery)
+//       .skip((page - 1) * limit)
+//       .limit(limit);
+
+//     const totalPages = Math.ceil(totalItems / limit);
+
+//     res.status(StatusCodes.OK).json({
+//       currentPage: parseInt(page),
+//       totalPages,
+//       totalItems,
+//       items,
+//     });
+//   } catch (error) {
+//     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+//       status: 500,
+//       error: error.message,
+//       message: "Internal Server Error",
+//     });
+//   }
+// };
+
+const getAllItems = async (req, res, Model, associatedTerm, associatedId) => {
   try {
     const { page = 1, limit = 10, searchTerm = "" } = req.query;
     const searchQuery = {};
+    const whereClause = {};
 
+    // Handle search term
     if (searchTerm) {
       const keywords = searchTerm
         .split("%")
@@ -28,8 +64,17 @@ const getAllItems = async (req, res, Model) => {
       searchQuery.name = { $all: keywords };
     }
 
-    const totalItems = await Model.countDocuments(searchQuery);
-    const items = await Model.find(searchQuery)
+    // Handle where clause
+    if (associatedTerm && associatedId) {
+      // whereClause.associatedItems = associatedId;
+      whereClause[associatedTerm] = associatedId;
+    }
+
+    const totalItems = await Model.countDocuments({
+      ...searchQuery,
+      ...whereClause,
+    });
+    const items = await Model.find({ ...searchQuery, ...whereClause })
       .skip((page - 1) * limit)
       .limit(limit);
 
@@ -104,13 +149,11 @@ const getItemWithAssociations = async (
 
     res.status(StatusCodes.OK).json(responseData);
   } catch (error) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({
-        status: 500,
-        error: error.message,
-        message: "Something went wrong",
-      });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 500,
+      error: error.message,
+      message: "Something went wrong",
+    });
   }
 };
 
